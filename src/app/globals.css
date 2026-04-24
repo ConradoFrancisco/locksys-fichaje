@@ -1,26 +1,55 @@
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-geosearch/dist/geosearch.css";
 @import "tailwindcss";
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
+  --primary: #0072ff;
+  --secondary: #6cc04a;
+  --accent: #0a0f19;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0f19;
+    --foreground: #f8fafc;
+    --primary: #0072ff;
+    --secondary: #6cc04a;
+    --card: #111827;
+    --card-foreground: #f8fafc;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* LOCKSYS Card Style */
+.locksys-card {
+  background: rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+  color: white;
+}
+
+.bg-locksys-gradient {
+  background: linear-gradient(135deg, #0a0f19 0%, #111827 100%);
 }
