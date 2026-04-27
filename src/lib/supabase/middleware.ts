@@ -39,8 +39,12 @@ export async function updateSession(request: NextRequest) {
   const isDashboardPage = pathname.startsWith('/admin')
   const isAttendancePage = pathname.startsWith('/fichar')
 
-  // LOG PARA DEBUG EN CONSOLA
-  console.log(`[Middleware] Path: ${pathname} | User: ${user ? 'Logged' : 'Guest'}`)
+  // LOG PARA DEBUG EXTREMO
+  if (user) {
+    console.log(`[Middleware DEBUG] User: ${user.email} | Path: ${pathname}`)
+  } else {
+    console.log(`[Middleware DEBUG] No User Session | Path: ${pathname}`)
+  }
 
   // IMPORTANTE: Dejar pasar el callback sin interferir
   if (isAuthCallback) {
@@ -48,7 +52,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
-    // 2. Obtener datos extendidos del usuario (Rol y Estado)
     const { data: userData } = await supabase
       .from('users')
       .select('*')
@@ -56,6 +59,9 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     const role = userData?.role
+    const tenantId = userData?.tenant_id
+
+    console.log(`[Middleware DEBUG] Role: ${role} | Tenant: ${tenantId}`)
 
     // 3. LÓGICA PARA USUARIOS NUEVOS (Sin registro en public.users)
     if (!role) {

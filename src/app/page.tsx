@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { SVGProps } from 'react'
 import { ShieldCheck, MapPin, Users, Smartphone, MessageCircle, ArrowRight, CheckCircle } from 'lucide-react'
 
 export default function LandingPage() {
@@ -14,12 +15,17 @@ export default function LandingPage() {
       {/* Navbar */}
       <header className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center shadow-lg shadow-blue-500/10">
+          {/* <div className="h-10 w-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center shadow-lg shadow-blue-500/10">
             <ShieldCheck className="h-6 w-6 text-[#0072ff]" />
           </div>
           <span className="text-2xl font-black tracking-tighter">
             LOCK<span className="text-[#0072ff]">SYS</span>
-          </span>
+          </span> */}
+          <img 
+            src="/lock-sys-logo.png"
+            alt="LockSys Ordena"
+            className="h-40 w-40 rounded-xl flex items-center justify-center shadow-blue-500/10"
+          />
         </div>
         
         <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -137,7 +143,7 @@ export default function LandingPage() {
   )
 }
 
-function History(props: any) {
+function History(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

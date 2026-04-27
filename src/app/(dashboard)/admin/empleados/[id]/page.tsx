@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, User, Calendar, Mail, Smartphone, RefreshCw, ShieldCheck } from 'lucide-react'
-import { ScheduleManager } from '@/components/admin/ScheduleManager'
+import { WeekSchedulePicker } from '@/components/admin/WeekSchedulePicker'
 import { resetDevice } from '@/lib/actions/employees'
 
 export default async function EmpleadoDetailPage({ params }: { params: { id: string } }) {
@@ -77,15 +77,16 @@ export default async function EmpleadoDetailPage({ params }: { params: { id: str
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-            <Calendar className="h-6 w-6 text-[#0072ff]" />
-            <h2 className="text-2xl font-black text-white tracking-tight">Configuración de Horarios</h2>
+      <div className="space-y-8">
+        {/* Nuevo Selector de Semanas */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-6 w-6 text-[#6cc04a]" />
+            <h2 className="text-2xl font-black text-white tracking-tight">Asignar Turnos de Trabajo</h2>
+          </div>
+          <p className="text-sm text-slate-400">1️⃣ Selecciona la semana | 2️⃣ Arrastra en los días para definir horarios | 3️⃣ Se guarda automáticamente</p>
+          <WeekSchedulePicker employeeId={employee.id} />
         </div>
-        <ScheduleManager 
-          employeeId={employee.id} 
-          initialSchedules={schedules || []} 
-        />
       </div>
     </div>
   )

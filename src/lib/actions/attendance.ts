@@ -2,6 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { 
+  startOfMonth, 
+  endOfMonth, 
+  eachWeekOfInterval, 
+  endOfWeek, 
+  isWithinInterval 
+} from 'date-fns'
 
 // Fórmula de Haversine para calcular distancia entre dos puntos (lat/long) en metros
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -26,23 +33,66 @@ export async function submitAttendance(formData: FormData) {
   const photoBase64 = formData.get('photo') as string
   const deviceId = formData.get('deviceId') as string
 
-  // 1. Obtener datos del empleado y su horario de hoy
-  const today = new Date()
-  const dayOfWeek = today.getDay() // 0 = Domingo, 1 = Lunes, etc.
+  // 1. Obtener datos del empleado y su horario de hoy (Contexto Argentina)
+  const now = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}))
+  const dayOfWeek = now.getDay() // 0 = Domingo, 1 = Lunes, etc.
+  
+  // Cálculo de semana real usando la misma lógica que el Picker (Semana empieza el Lunes)
+  const start = startOfMonth(now)
+  const end = endOfMonth(start)
+  const weeksInterval = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 })
+  
+  let weekNumber = 1
+  for (let i = 0; i < weeksInterval.length; i++) {
+    const wStart = weeksInterval[i]
+    const wEnd = endOfWeek(wStart, { weekStartsOn: 1 })
+    if (isWithinInterval(now, { start: wStart, end: wEnd })) {
+      weekNumber = i + 1
+      break
+    }
+  }
 
-  const { data: employee, error: empError } = await supabase
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+
+  // Buscamos el horario específico para esta semana/mes/año
+  let { data: employee, error: empError } = await supabase
     .from('employees')
     .select(`
       id, 
       device_id, 
       tenant_id,
-      schedules(day_of_week, start_time, end_time)
+      schedules(day_of_week, start_time, end_time, week_number, month, year)
     `)
     .eq('id', employeeId)
     .eq('schedules.day_of_week', dayOfWeek)
+    .eq('schedules.week_number', weekNumber)
+    .eq('schedules.month', currentMonth)
+    .eq('schedules.year', currentYear)
     .single()
 
-  if (empError || !employee) return { error: 'Empleado no encontrado o sin horario para hoy' }
+  if (empError || !employee) {
+    // Si no hay horario específico, podríamos intentar buscar uno "general" (week_number null)
+    const { data: generalEmployee, error: generalError } = await supabase
+      .from('employees')
+      .select(`
+        id, 
+        device_id, 
+        tenant_id,
+        schedules(day_of_week, start_time, end_time, week_number, month, year)
+      `)
+      .eq('id', employeeId)
+      .eq('schedules.day_of_week', dayOfWeek)
+      .is('schedules.week_number', null)
+      .single()
+
+    if (generalError || !generalEmployee || !generalEmployee.schedules?.length) {
+      return { error: 'No tienes un horario asignado para hoy en esta semana.' }
+    }
+    
+    // Usamos el horario general si existe
+    employee = generalEmployee
+  }
 
   // 2. Validar Vínculo de Dispositivo
   if (!employee.device_id) {

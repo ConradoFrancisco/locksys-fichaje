@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -6,7 +7,6 @@ import {
   History, 
   Settings, 
   LogOut,
-  ShieldCheck
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -31,21 +31,26 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen bg-[#0a0f19] text-white">
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 hidden h-full w-64 flex-col border-r border-white/5 bg-slate-900/50 backdrop-blur-xl lg:flex z-50">
-        <div className="p-8">
-          <Link href="/admin" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/10">
-              <ShieldCheck className="h-6 w-6 text-[#0072ff]" />
+        <div className="p-6 flex items-center gap-3 border-b border-white/5">
+          <Link href="/admin" className="flex items-center gap-3 group flex-1">
+            <div className="h-12 w-12 flex-shrink-0 relative">
+              <Image
+                src="/lock-sys-logo.png"
+                alt="LockSys Ordena"
+                fill
+                className="object-contain group-hover:scale-110 transition-transform"
+              />
             </div>
             <div>
-              <p className="text-xl font-black tracking-tighter">
+              <p className="text-lg font-black tracking-tight">
                 LOCK<span className="text-[#0072ff]">SYS</span>
               </p>
-              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Panel de Control</p>
+              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Ordena</p>
             </div>
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-2 px-4">
+        <nav className="flex-1 space-y-2 px-4 py-6">
           {navItems.map((item) => (
             <Link
               key={item.href}

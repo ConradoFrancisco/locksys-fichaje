@@ -3,16 +3,22 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function saveSchedule(
-  employeeId: string, 
-  dayOfWeek: number, 
-  startTime: string, 
-  endTime: string,
-  isActive: boolean
+export async function saveWeekSchedules(
+  employeeId: string,
+  weeksData: {
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    isActive: boolean
+  }[],
+  weekNumber: number,
+  month: number,
+  year: number,
+  startDate: string,
+  endDate: string
 ) {
   const supabase = await createClient()
 
-  // 1. Obtener usuario y su tenant_id
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autorizado' }
 
@@ -24,15 +30,88 @@ export async function saveSchedule(
 
   if (!userData?.tenant_id) return { error: 'No vinculado a empresa' }
 
+  // 1. Primero borramos los que ya no están activos
+  const inactiveDays = weeksData.filter(d => !d.isActive).map(d => d.dayOfWeek)
+  if (inactiveDays.length > 0) {
+    await supabase
+      .from('schedules')
+      .delete()
+      .eq('employee_id', employeeId)
+      .eq('year', year)
+      .eq('month', month)
+      .eq('week_number', weekNumber)
+      .in('day_of_week', inactiveDays)
+  }
+
+  // 2. Preparamos los datos para el upsert masivo
+  const activeSchedules = weeksData
+    .filter(d => d.isActive)
+    .map(d => ({
+      tenant_id: userData.tenant_id,
+      employee_id: employeeId,
+      day_of_week: d.dayOfWeek,
+      start_time: d.startTime,
+      end_time: d.endTime,
+      week_number: weekNumber,
+      month: month,
+      year: year,
+      start_date: startDate,
+      end_date: endDate
+    }))
+
+  if (activeSchedules.length > 0) {
+    const { error } = await supabase
+      .from('schedules')
+      .upsert(activeSchedules, {
+        onConflict: 'employee_id,day_of_week,year,week_number,month'
+      })
+
+    if (error) return { error: error.message }
+  }
+
+  revalidatePath(`/admin/empleados/${employeeId}`)
+  return { success: true }
+}
+
+export async function saveSchedule(
+  employeeId: string, 
+  dayOfWeek: number, 
+  startTime: string, 
+  endTime: string,
+  isActive: boolean,
+  weekNumber?: number,
+  month?: number,
+  year?: number,
+  startDate?: string,
+  endDate?: string
+) {
+  // Mantengo esta función por compatibilidad con el botón de "Guardar como Base"
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autorizado' }
+
+  const { data: userData } = await supabase
+    .from('users')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData?.tenant_id) return { error: 'No vinculado a empresa' }
+
+  const currentYear = year || new Date().getFullYear()
+  const finalStartDate = startDate || new Date().toISOString().split('T')[0]
+
   if (!isActive) {
-    // Si se desactiva el día, borramos el registro
     await supabase
       .from('schedules')
       .delete()
       .eq('employee_id', employeeId)
       .eq('day_of_week', dayOfWeek)
+      .eq('year', currentYear)
+      .eq('week_number', weekNumber)
+      .eq('month', month)
   } else {
-    // Si está activo, guardamos/actualizamos
     const { error } = await supabase
       .from('schedules')
       .upsert({
@@ -41,8 +120,13 @@ export async function saveSchedule(
         day_of_week: dayOfWeek,
         start_time: startTime,
         end_time: endTime,
+        week_number: weekNumber || null,
+        month: month || null,
+        year: currentYear,
+        start_date: finalStartDate,
+        end_date: endDate || null,
       }, {
-        onConflict: 'employee_id,day_of_week'
+        onConflict: 'employee_id,day_of_week,year,week_number,month'
       })
 
     if (error) return { error: error.message }
@@ -50,4 +134,37 @@ export async function saveSchedule(
 
   revalidatePath(`/admin/empleados/${employeeId}`)
   return { success: true }
+}
+
+export async function getEmployeeSchedules(
+  employeeId: string, 
+  year?: number, 
+  month?: number,
+  weekNumber?: number
+) {
+  const supabase = await createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autorizado', schedules: [] }
+
+  const currentYear = year || new Date().getFullYear()
+
+  let query = supabase
+    .from('schedules')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .eq('year', currentYear)
+
+  if (month) {
+    query = query.eq('month', month)
+  }
+
+  if (weekNumber !== undefined) {
+    query = query.eq('week_number', weekNumber)
+  }
+
+  const { data, error } = await query
+
+  if (error) return { error: error.message, schedules: [] }
+  return { schedules: data || [] }
 }

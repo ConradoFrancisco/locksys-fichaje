@@ -154,6 +154,70 @@ export interface Database {
           device_id?: string | null
         }
       }
+      schedules: {
+        Row: {
+          id: string
+          tenant_id: string
+          employee_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          week_number: number | null
+          month: number | null
+          year: number
+          start_date: string
+          end_date: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          employee_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          week_number?: number | null
+          month?: number | null
+          year?: number
+          start_date: string
+          end_date?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          employee_id?: string
+          day_of_week?: number
+          start_time?: string
+          end_time?: string
+          week_number?: number | null
+          month?: number | null
+          year?: number
+          start_date?: string
+          end_date?: string | null
+          created_at?: string
+        }
+      }
+      departments: {
+        Row: {
+          id: string
+          tenant_id: string
+          name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          name: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          name?: string
+          created_at?: string
+        }
+      }
     }
   }
 }

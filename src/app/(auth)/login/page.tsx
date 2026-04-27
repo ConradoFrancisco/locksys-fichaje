@@ -3,8 +3,8 @@
 import { signIn, signInWithGoogle } from '@/lib/actions/auth'
 import { SubmitButton } from '@/components/shared/SubmitButton'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useActionState, useEffect } from 'react'
-import { ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -54,8 +54,15 @@ export default function LoginPage() {
           <div className="flex justify-center">
             <div className="relative group">
               <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 to-emerald-500 opacity-25 blur group-hover:opacity-50 transition duration-1000"></div>
-              <div className="relative h-20 w-20 rounded-2xl bg-slate-900 flex items-center justify-center border border-white/10 shadow-2xl">
-                <ShieldCheck className="h-12 w-12 text-[#0072ff]" />
+              <div className="relative h-20 w-20 rounded-2xl bg-slate-900 flex items-center justify-center border border-white/10 shadow-2xl p-2">
+                <Image
+                  src="/lock-sys-logo.png"
+                  alt="LockSys Ordena"
+                  width={64}
+                  height={64}
+                  priority
+                  className="group-hover:scale-110 transition-transform"
+                />
               </div>
             </div>
           </div>

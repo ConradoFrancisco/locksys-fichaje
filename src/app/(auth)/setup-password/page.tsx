@@ -2,8 +2,9 @@
 
 import { setupPasswordAndDevice } from '@/lib/actions/auth'
 import { SubmitButton } from '@/components/shared/SubmitButton'
+import Image from 'next/image'
 import { useActionState, useEffect, useState } from 'react'
-import { ShieldCheck, Smartphone, Lock, AlertCircle } from 'lucide-react'
+import { Lock, AlertCircle } from 'lucide-react'
 export default function SetupPasswordPage() {
   const [state, formAction] = useActionState(setupPasswordAndDevice, null)
   const [deviceId, setDeviceId] = useState('')
@@ -26,30 +27,37 @@ export default function SetupPasswordPage() {
         <div className="mb-10 text-center space-y-4">
           <div className="flex justify-center">
             <div className="relative group">
-              <div className="absolute -inset-1 rounded-full bg-emerald-500 opacity-25 blur group-hover:opacity-50 transition duration-1000"></div>
-              <div className="relative h-20 w-20 rounded-2xl bg-slate-900 flex items-center justify-center border border-white/10 shadow-2xl">
-                <Smartphone className="h-12 w-12 text-[#6cc04a]" />
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600 to-emerald-500 opacity-25 blur group-hover:opacity-50 transition duration-1000"></div>
+              <div className="relative h-20 w-20 rounded-2xl bg-slate-900 flex items-center justify-center border border-white/10 shadow-2xl p-2">
+                <Image
+                  src="/lock-sys-logo.png"
+                  alt="LockSys Ordena"
+                  width={64}
+                  height={64}
+                  priority
+                  className="group-hover:scale-110 transition-transform"
+                />
               </div>
             </div>
           </div>
           <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tighter text-white uppercase">
-              Vincular <span className="text-[#6cc04a]">Dispositivo</span>
+            <h1 className="text-4xl font-black tracking-tighter text-white">
+              LOCK<span className="text-[#0072ff]">SYS</span>
             </h1>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-              Configurá tu cuenta y protegé tu acceso
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              Configurá tu <span className="text-[#6cc04a]">contraseña</span> de acceso
             </p>
           </div>
         </div>
 
-        <div className="locksys-card p-8">
+        <div className="rounded-3xl bg-slate-900/50 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
           <form action={formAction} className="space-y-6">
             <div className="rounded-xl bg-indigo-500/10 p-4 border border-indigo-500/20 text-xs text-indigo-300 font-medium leading-relaxed">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="h-4 w-4" />
                 <span className="font-bold uppercase tracking-widest">Seguridad LOCKSYS</span>
               </div>
-              Esta es tu primera vez. Al elegir tu contraseña, este teléfono quedará vinculado como tu **dispositivo único de fichaje**.
+              Esta es tu primera vez. Al elegir tu contraseña, este dispositivo quedará vinculado como tu **dispositivo único de fichaje**.
             </div>
 
             {state?.error && (
@@ -62,7 +70,7 @@ export default function SetupPasswordPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Nueva Contraseña</label>
+                <label className="block text-xs font-bold text-slate-300 mb-2">Nueva Contraseña</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-600" />
                   <input
@@ -70,13 +78,13 @@ export default function SetupPasswordPage() {
                     type="password"
                     required
                     placeholder="Elegí una clave segura"
-                    className="block w-full rounded-xl border border-white/10 bg-slate-950/50 pl-12 pr-4 py-3 text-white placeholder-slate-700 focus:border-[#6cc04a] focus:ring-1 focus:ring-[#6cc04a] outline-none transition-all"
+                    className="block w-full rounded-lg border border-white/10 bg-white/5 pl-12 pr-4 py-2 text-white placeholder-slate-500 transition-all hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#0072ff] focus:bg-white/5"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Repetir Contraseña</label>
+                <label className="block text-xs font-bold text-slate-300 mb-2">Repetir Contraseña</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-600" />
                   <input
@@ -84,14 +92,14 @@ export default function SetupPasswordPage() {
                     type="password"
                     required
                     placeholder="Confirmá tu clave"
-                    className="block w-full rounded-xl border border-white/10 bg-slate-950/50 pl-12 pr-4 py-3 text-white placeholder-slate-700 focus:border-[#6cc04a] focus:ring-1 focus:ring-[#6cc04a] outline-none transition-all"
+                    className="block w-full rounded-lg border border-white/10 bg-white/5 pl-12 pr-4 py-2 text-white placeholder-slate-500 transition-all hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#0072ff] focus:bg-white/5"
                   />
                 </div>
               </div>
             </div>
 
-            <SubmitButton className="w-full bg-[#6cc04a] hover:bg-emerald-600 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-500/20 text-slate-950">
-              VINCULAR Y ACTIVAR
+            <SubmitButton className="w-full bg-gradient-to-r from-[#0072ff] to-[#00d4ff] hover:opacity-90 py-3 rounded-lg font-bold text-white uppercase tracking-widest shadow-lg shadow-blue-500/20">
+              VINCULAR DISPOSITIVO
             </SubmitButton>
           </form>
         </div>
