@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { ScheduleManager } from './ScheduleManager'
 
-import { getEmployeeSchedules } from '@/lib/actions/schedules'
+import { getEmployeeSchedules, saveSchedule, saveWeekSchedules } from '@/lib/actions/schedules'
 
 interface Props {
   employeeId: string
@@ -100,21 +100,23 @@ export function WeekSchedulePicker({ employeeId }: Props) {
     setIsLoading(true)
     const { schedules } = await getEmployeeSchedules(employeeId, year, month, selectedWeek.weekNumber - 1)
     if (schedules && schedules.length > 0) {
-      // Guardamos cada uno para la nueva semana
-      for (const s of schedules) {
-        await saveSchedule(
-          employeeId,
-          s.day_of_week,
-          s.start_time,
-          s.end_time,
-          true,
-          selectedWeek.weekNumber,
-          month,
-          year,
-          selectedWeek.startDate.toISOString().split('T')[0],
-          selectedWeek.endDate.toISOString().split('T')[0]
-        )
-      }
+      // Preparamos los datos para guardado masivo
+      const weeksData = schedules.map(s => ({
+        dayOfWeek: s.day_of_week,
+        startTime: s.start_time,
+        endTime: s.end_time,
+        isActive: true
+      }))
+
+      await saveWeekSchedules(
+        employeeId,
+        weeksData,
+        selectedWeek.weekNumber,
+        month,
+        year,
+        selectedWeek.startDate.toISOString().split('T')[0],
+        selectedWeek.endDate.toISOString().split('T')[0]
+      )
       // Recargar
       const { schedules: newSchedules } = await getEmployeeSchedules(employeeId, year, month, selectedWeek.weekNumber)
       setLocalSchedules(newSchedules || [])
