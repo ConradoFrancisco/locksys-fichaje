@@ -6,13 +6,15 @@ import { Plus, Trash2, Tag, LayoutGrid } from 'lucide-react'
 
 export function DepartmentManager({ departments }: { departments: any[] }) {
   const [name, setName] = useState('')
+  const [hours, setHours] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleCreate = async () => {
     if (!name) return
     setLoading(true)
-    await createDepartment(name)
+    await createDepartment(name, hours ? parseInt(hours) : undefined)
     setName('')
+    setHours('')
     setLoading(false)
   }
 
@@ -26,29 +28,49 @@ export function DepartmentManager({ departments }: { departments: any[] }) {
       </div>
 
       <div className="flex gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Ej: Docencia"
-          className="flex-1 rounded-xl border border-white/10 bg-slate-950/50 px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-all"
-        />
-        <button 
-          onClick={handleCreate}
-          disabled={loading}
-          className="bg-indigo-600 p-2 rounded-xl text-white hover:bg-indigo-700 transition-all disabled:opacity-50"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        <div className="flex-1">
+          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Nombre</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej: Docencia"
+            className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-all"
+          />
+        </div>
+        <div className="w-24">
+          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Hs Turno</label>
+          <input
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+            type="number"
+            placeholder="8"
+            className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-all"
+          />
+        </div>
+        <div className="flex items-end">
+          <button 
+            onClick={handleCreate}
+            disabled={loading}
+            className="bg-indigo-600 h-10 w-10 flex items-center justify-center rounded-xl text-white hover:bg-indigo-700 transition-all disabled:opacity-50"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 pt-2">
         {departments.map((dept) => (
           <div key={dept.id} className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-1.5 rounded-xl group transition-all hover:border-indigo-500/30">
             <Tag className="h-3 w-3 text-indigo-400" />
-            <span className="text-xs font-bold text-slate-300">{dept.name}</span>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-300">{dept.name}</span>
+              {dept.default_hours && (
+                <span className="text-[9px] font-black text-indigo-400 uppercase">{dept.default_hours} hs</span>
+              )}
+            </div>
             <button 
               onClick={() => deleteDepartment(dept.id)}
-              className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+              className="ml-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

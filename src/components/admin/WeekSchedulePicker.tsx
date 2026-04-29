@@ -8,6 +8,7 @@ import { getEmployeeSchedules, saveSchedule, saveWeekSchedules } from '@/lib/act
 
 interface Props {
   employeeId: string
+  defaultHours?: number | null
 }
 
 interface WeekOption {
@@ -51,7 +52,7 @@ function getWeeksOfMonth(year: number, month: number): WeekOption[] {
   })
 }
 
-export function WeekSchedulePicker({ employeeId }: Props) {
+export function WeekSchedulePicker({ employeeId, defaultHours }: Props) {
   const [year, setYear] = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [weeks, setWeeks] = useState<WeekOption[]>([])
@@ -236,6 +237,7 @@ export function WeekSchedulePicker({ employeeId }: Props) {
               year={year}
               weekStartDate={selectedWeek.startDate.toISOString().split('T')[0]}
               weekEndDate={selectedWeek.endDate.toISOString().split('T')[0]}
+              defaultHours={defaultHours}
             />
           )}
         </div>

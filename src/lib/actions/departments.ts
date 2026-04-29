@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function createDepartment(name: string) {
+export async function createDepartment(name: string, defaultHours?: number) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,7 +19,8 @@ export async function createDepartment(name: string) {
     .from('departments')
     .insert({
       tenant_id: userData.tenant_id,
-      name: name
+      name: name,
+      default_hours: defaultHours || null
     })
 
   if (error) return { error: error.message }

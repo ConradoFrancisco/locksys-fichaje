@@ -31,6 +31,7 @@ export async function createEmployee(prevState: any, formData: FormData) {
   const email = formData.get('email') as string
   const dni = formData.get('internalId') as string || null 
   const departmentId = formData.get('department_id') as string || null
+  const worksiteId = formData.get('worksite_id') as string || null
 
   // 2. Enviar Invitación con Metadata (incluyendo empresa)
   const { data: authUser, error: authError } = await adminClient.auth.admin.inviteUserByEmail(email, {
@@ -70,6 +71,7 @@ export async function createEmployee(prevState: any, formData: FormData) {
       email: email,
       dni: dni,
       department_id: departmentId,
+      worksite_id: worksiteId,
       is_active: true,
       needs_password_change: true
     })
@@ -81,6 +83,33 @@ export async function createEmployee(prevState: any, formData: FormData) {
   }
 
   revalidatePath('/admin/empleados')
+  return { success: true }
+}
+
+export async function updateEmployee(id: string, data: { fullName?: string, dni?: string | null, departmentId?: string | null, worksiteId?: string | null, isActive?: boolean }) {
+  const supabase = await createClient()
+  
+  const updateData: any = {}
+  if (data.fullName !== undefined) updateData.full_name = data.fullName
+  if (data.dni !== undefined) updateData.dni = data.dni
+  if (data.departmentId !== undefined) updateData.department_id = data.departmentId
+  if (data.worksiteId !== undefined) updateData.worksite_id = data.worksiteId
+  if (data.isActive !== undefined) updateData.is_active = data.isActive
+
+  const { error } = await supabase
+    .from('employees')
+    .update(updateData)
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  
+  // Si cambió el nombre, actualizar también en la tabla users
+  if (data.fullName) {
+    await supabase.from('users').update({ full_name: data.fullName }).eq('id', id)
+  }
+
+  revalidatePath('/admin/empleados')
+  revalidatePath(`/admin/empleados/${id}`)
   return { success: true }
 }
 

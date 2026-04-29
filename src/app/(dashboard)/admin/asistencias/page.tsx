@@ -23,15 +23,33 @@ export default async function AsistenciasPage() {
     .eq('id', user?.id || '')
     .single()
 
-  // 2. Obtener asistencias recientes con datos de empleado y sede
-  const { data: attendance } = await supabase
+  // 2. Obtener asistencias (filtradas si es manager)
+  let query = supabase
     .from('attendance')
     .select(`
       *,
-      employees(full_name, internal_id),
+      employees(full_name, dni),
       worksites(name)
     `)
     .eq('tenant_id', userData?.tenant_id || '')
+
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  const { data: currentUserData } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', currentUser?.id || '')
+    .single()
+
+  if (currentUserData?.role === 'manager') {
+    const { data: assignments } = await supabase
+      .from('admin_worksites')
+      .select('worksite_id')
+      .eq('user_id', currentUser?.id || '')
+    const worksiteIds = assignments?.map(a => a.worksite_id) || []
+    query = query.in('worksite_id', worksiteIds)
+  }
+
+  const { data: attendance } = await query
     .order('check_in', { ascending: false })
     .limit(50)
 
@@ -82,7 +100,7 @@ export default async function AsistenciasPage() {
                       <div>
                         <p className="font-black text-white">{item.employees?.full_name}</p>
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                          {item.employees?.internal_id ? `DNI: ${item.employees.internal_id}` : 'Sin DNI'}
+                          {item.employees?.dni ? `DNI: ${item.employees.dni}` : 'Sin DNI'}
                         </p>
                       </div>
                     </div>
@@ -98,7 +116,7 @@ export default async function AsistenciasPage() {
                       <div>
                         <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Ingreso</p>
                         <p className="font-bold text-white text-sm">
-                          {format(new Date(item.check_in), "HH:mm 'hs'", { locale: es })}
+                          {format(new Date(item.check_in), "hh:mm a", { locale: es })}
                         </p>
                         <p className="text-[10px] text-slate-500 font-bold capitalize">
                           {format(new Date(item.check_in), "eee dd MMM", { locale: es })}
@@ -108,7 +126,7 @@ export default async function AsistenciasPage() {
                         <div>
                           <p className="text-[10px] font-black text-[#6cc04a] uppercase mb-1">Egreso</p>
                           <p className="font-bold text-white text-sm">
-                            {format(new Date(item.check_out), "HH:mm 'hs'", { locale: es })}
+                            {format(new Date(item.check_out), "hh:mm a", { locale: es })}
                           </p>
                         </div>
                       )}

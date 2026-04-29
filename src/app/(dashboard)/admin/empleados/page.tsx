@@ -16,12 +16,31 @@ export default async function EmpleadosPage() {
     .eq('id', user?.id || '')
     .single()
 
-  // 2. Obtener los empleados de ese tenant
-  const { data: employees } = await supabase
+  // 2. Obtener los empleados (filtrado por sedes si es manager)
+  let employeesQuery = supabase
     .from('employees')
     .select('*')
     .eq('tenant_id', userData?.tenant_id || '')
-    .order('full_name')
+
+  let worksitesQuery = supabase
+    .from('worksites')
+    .select('*')
+    .eq('tenant_id', userData?.tenant_id || '')
+    .order('name')
+
+  if (userData?.role === 'manager') {
+    const { data: assignments } = await supabase
+      .from('admin_worksites')
+      .select('worksite_id')
+      .eq('user_id', user?.id || '')
+    
+    const worksiteIds = assignments?.map(a => a.worksite_id) || []
+    employeesQuery = employeesQuery.in('worksite_id', worksiteIds)
+    worksitesQuery = worksitesQuery.in('id', worksiteIds)
+  }
+
+  const { data: employees } = await employeesQuery.order('full_name')
+  const { data: worksites } = await worksitesQuery
 
   // 3. Obtener departamentos
   const { data: departments } = await supabase
@@ -41,7 +60,7 @@ export default async function EmpleadosPage() {
         {/* Columna Izquierda: Configuración */}
         <div className="lg:col-span-1 space-y-8">
           <DepartmentManager departments={departments || []} />
-          <EmployeeForm departments={departments || []} />
+          <EmployeeForm departments={departments || []} worksites={worksites || []} />
         </div>
 
         {/* Listado */}

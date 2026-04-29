@@ -97,21 +97,22 @@ export async function updateSession(request: NextRequest) {
     }
 
     // C. Protección de rutas por ROL
+    const isAnyAdmin = role === 'admin' || role === 'manager'
+
     if (role === 'employee' && isDashboardPage) {
       return NextResponse.redirect(new URL('/fichar', request.url))
     }
-    if (role === 'admin' && isAttendancePage) {
+    if (isAnyAdmin && isAttendancePage) {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
 
     // D. Si ya está logueado y va a login/register
     if (isAuthPage) {
-      const dest = role === 'admin' ? '/admin' : '/fichar'
+      const dest = isAnyAdmin ? '/admin' : '/fichar'
       return NextResponse.redirect(new URL(dest, request.url))
     }
 
-    // E. Onboarding de empresa (solo para admins)
-    // Verificamos tanto la metadata como si ya tiene un tenant_id asignado en la DB
+    // E. Onboarding de empresa (solo para el admin principal/owner)
     const hasTenant = !!userData?.tenant_id
     const isOnboarded = user.user_metadata?.onboarded === true || hasTenant
 

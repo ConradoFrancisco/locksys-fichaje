@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { saveSchedule, saveWeekSchedules } from '@/lib/actions/schedules'
-import { Clock, MousePointer2, RefreshCw, Ban } from 'lucide-react'
+import { Clock, MousePointer2, RefreshCw, Ban, Wand2 } from 'lucide-react'
 import { addDays, isSameMonth, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 
@@ -17,6 +17,7 @@ interface ScheduleManagerProps {
   year: number
   weekStartDate: string
   weekEndDate: string
+  defaultHours?: number | null
 }
 
 export function ScheduleManager({ 
@@ -26,7 +27,8 @@ export function ScheduleManager({
   month,
   year,
   weekStartDate,
-  weekEndDate
+  weekEndDate,
+  defaultHours
 }: ScheduleManagerProps) {
   const [data, setData] = useState<{ [key: number]: { start: number, end: number, active: boolean } }>(() => {
     const initial: any = {}
@@ -46,6 +48,16 @@ export function ScheduleManager({
     })
     return initial
   })
+
+  const handleAutoFill = (day: number) => {
+    if (!defaultHours) return
+    setData(prev => ({
+      ...prev,
+      [day]: { ...prev[day], start: 8, end: 8 + defaultHours, active: true }
+    }))
+    setHasChanges(true)
+    toast.success(`Turno de ${defaultHours}hs aplicado`)
+  }
 
   // Sincronizar estado cuando cambian los horarios iniciales (cambio de semana)
   useEffect(() => {
@@ -70,10 +82,26 @@ export function ScheduleManager({
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ day: number, hour: number } | null>(null)
   const [loading, setLoading] = useState(false)
-
   const [hasChanges, setHasChanges] = useState(false)
+  const [isAutoFillMode, setIsAutoFillMode] = useState(false)
 
   const handleMouseDown = (day: number, hour: number) => {
+    if (isAutoFillMode && defaultHours) {
+      // Modo Jornada de Sector: Un solo clic llena las horas
+      setData(prev => ({
+        ...prev,
+        [day]: { 
+          ...prev[day], 
+          start: hour, 
+          end: Math.min(24, hour + defaultHours), 
+          active: true 
+        }
+      }))
+      setHasChanges(true)
+      toast.success(`Turno de ${defaultHours}hs aplicado desde las ${hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour-12}pm`}`)
+      return // No activar dragging
+    }
+
     setIsDragging(true)
     setDragStart({ day, hour })
     setData(prev => ({
@@ -162,6 +190,32 @@ export function ScheduleManager({
                <span>No laboral</span>
             </div>
           </div>
+          
+          {defaultHours && (
+            <>
+              <div className="h-10 w-px bg-white/5"></div>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only" 
+                    checked={isAutoFillMode}
+                    onChange={(e) => setIsAutoFillMode(e.target.checked)}
+                  />
+                  <div className={`block w-10 h-6 rounded-full transition-all ${isAutoFillMode ? 'bg-[#0072ff]' : 'bg-slate-800'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-all ${isAutoFillMode ? 'translate-x-4' : ''}`}></div>
+                </div>
+                <div className="flex flex-col">
+                  <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isAutoFillMode ? 'text-white' : 'text-slate-500'}`}>
+                    Jornada de Sector
+                  </span>
+                  <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter">
+                    Auto-completar {defaultHours}hs
+                  </span>
+                </div>
+              </label>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -196,7 +250,7 @@ export function ScheduleManager({
             <div className="h-8"></div>
             {HOURS.map(h => (
               <div key={h} className="text-center text-[10px] font-black text-slate-600 border-l border-white/5">
-                {h}h
+                {h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`}
               </div>
             ))}
           </div>
@@ -224,12 +278,27 @@ export function ScheduleManager({
                     {outOfMonth ? (
                       <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">Fuera de mes</span>
                     ) : (
-                      <button 
-                        onClick={() => clearDay(dayIndex)}
-                        className="text-[10px] text-red-500/70 hover:text-red-400 font-bold text-left opacity-0 group-hover:opacity-100 transition-all uppercase tracking-tighter mt-1"
-                      >
-                        Limpiar día
-                      </button>
+                      <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                          onClick={() => clearDay(dayIndex)}
+                          className="text-[10px] text-red-500/70 hover:text-red-400 font-bold uppercase tracking-tighter"
+                        >
+                          Limpiar
+                        </button>
+                        {defaultHours && (
+                          <>
+                            <span className="text-slate-700 text-[10px]">|</span>
+                            <button 
+                              onClick={() => handleAutoFill(dayIndex)}
+                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-tighter flex items-center gap-1"
+                              title={`Cargar ${defaultHours} hs predeterminadas`}
+                            >
+                              <Wand2 className="h-2.5 w-2.5" />
+                              {defaultHours}hs
+                            </button>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                   
@@ -238,6 +307,13 @@ export function ScheduleManager({
                       const isSelected = data[dayIndex].active && hour >= data[dayIndex].start && hour < data[dayIndex].end
                       const isStart = data[dayIndex].active && hour === data[dayIndex].start
                       const isEnd = data[dayIndex].active && hour === data[dayIndex].end - 1
+
+                      const formatHour = (h: number) => {
+                        if (h === 0 || h === 24) return '12 AM'
+                        if (h < 12) return `${h} AM`
+                        if (h === 12) return '12 PM'
+                        return `${h - 12} PM`
+                      }
                       
                       return (
                         <div
@@ -255,12 +331,12 @@ export function ScheduleManager({
                         >
                           {isStart && (
                             <div className="absolute -top-7 left-0 text-[9px] font-black text-[#0072ff] whitespace-nowrap bg-black/50 px-2 py-0.5 rounded-full border border-[#0072ff]/30">
-                              INICIO: {hour}:00
+                              INICIO: {formatHour(hour)}
                             </div>
                           )}
                           {isEnd && (
                             <div className="absolute -top-7 right-0 text-[9px] font-black text-[#0072ff] whitespace-nowrap text-right bg-black/50 px-2 py-0.5 rounded-full border border-[#0072ff]/30">
-                              FIN: {hour + 1}:00
+                              FIN: {formatHour(hour + 1)}
                             </div>
                           )}
                           {outOfMonth && (

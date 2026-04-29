@@ -7,6 +7,7 @@ import {
   History, 
   Settings, 
   LogOut,
+  Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -20,12 +21,25 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isOwner = userData?.role === 'admin'
+
   const navItems = [
     { label: 'Inicio', href: '/admin', icon: LayoutDashboard },
     { label: 'Sedes', href: '/admin/sedes', icon: MapPin },
     { label: 'Empleados', href: '/admin/empleados', icon: Users },
+    { label: 'Planificación', href: '/admin/planificacion', icon: Calendar },
     { label: 'Asistencias', href: '/admin/asistencias', icon: History },
   ]
+
+  if (isOwner) {
+    navItems.push({ label: 'Administradores', href: '/admin/administradores', icon: Settings })
+  }
 
   return (
     <div className="flex min-h-screen bg-[#0a0f19] text-white">

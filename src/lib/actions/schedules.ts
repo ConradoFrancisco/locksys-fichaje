@@ -168,3 +168,48 @@ export async function getEmployeeSchedules(
   if (error) return { error: error.message, schedules: [] }
   return { schedules: data || [] }
 }
+
+export async function getBulkSchedules(
+  tenantId: string,
+  year: number,
+  month: number,
+  weekNumber: number,
+  worksiteId?: string,
+  departmentId?: string
+) {
+  const supabase = await createClient()
+
+  // 1. Obtener empleados filtrados
+  let employeesQuery = supabase
+    .from('employees')
+    .select('id, full_name, worksite_id, department_id')
+    .eq('tenant_id', tenantId)
+
+  if (worksiteId) employeesQuery = employeesQuery.eq('worksite_id', worksiteId)
+  if (departmentId) employeesQuery = employeesQuery.eq('department_id', departmentId)
+
+  const { data: employees, error: empError } = await employeesQuery
+  if (empError) return { error: empError.message, data: [] }
+
+  const employeeIds = employees.map(e => e.id)
+  if (employeeIds.length === 0) return { data: [] }
+
+  // 2. Obtener horarios para esos empleados
+  const { data: schedules, error: schError } = await supabase
+    .from('schedules')
+    .select('*')
+    .in('employee_id', employeeIds)
+    .eq('year', year)
+    .eq('month', month)
+    .eq('week_number', weekNumber)
+
+  if (schError) return { error: schError.message, data: [] }
+
+  // 3. Unir datos
+  const result = employees.map(emp => ({
+    ...emp,
+    schedules: schedules.filter(s => s.employee_id === emp.id)
+  }))
+
+  return { data: result }
+}

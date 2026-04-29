@@ -5,7 +5,7 @@ import { SubmitButton } from '@/components/shared/SubmitButton'
 import { useActionState, useEffect, useRef } from 'react'
 import { UserPlus } from 'lucide-react'
 
-export function EmployeeForm({ departments }: { departments: any[] }) {
+export function EmployeeForm({ departments, worksites }: { departments: any[], worksites: any[] }) {
   const [state, formAction] = useActionState(createEmployee, null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -48,18 +48,34 @@ export function EmployeeForm({ departments }: { departments: any[] }) {
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Área / Sector</label>
-          <select
-            name="department_id"
-            required
-            className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-white focus:border-[#6cc04a] focus:ring-1 focus:ring-[#6cc04a] outline-none transition-all appearance-none"
-          >
-            <option value="" className="bg-slate-900">Seleccionar área...</option>
-            {departments.map(d => (
-              <option key={d.id} value={d.id} className="bg-slate-900">{d.name}</option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Área / Sector</label>
+            <select
+              name="department_id"
+              required
+              className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-white focus:border-[#6cc04a] focus:ring-1 focus:ring-[#6cc04a] outline-none transition-all appearance-none"
+            >
+              <option value="" className="bg-slate-900">Seleccionar área...</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id} className="bg-slate-900">{d.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Sede / Ubicación</label>
+            <select
+              name="worksite_id"
+              required
+              className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-white focus:border-[#6cc04a] focus:ring-1 focus:ring-[#6cc04a] outline-none transition-all appearance-none"
+            >
+              <option value="" className="bg-slate-900">Seleccionar sede...</option>
+              {worksites.map(w => (
+                <option key={w.id} value={w.id} className="bg-slate-900">{w.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

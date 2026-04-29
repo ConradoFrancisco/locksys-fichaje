@@ -11,16 +11,28 @@ export default async function SedesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userData } = await supabase
     .from('users')
-    .select('tenant_id')
+    .select('role, tenant_id')
     .eq('id', user?.id || '')
     .single()
 
-  // 2. Obtener las sedes de ese tenant
-  const { data: worksites } = await supabase
+  const isOwner = userData?.role === 'admin'
+
+  // 2. Obtener las sedes (filtradas si es manager)
+  let query = supabase
     .from('worksites')
     .select('*')
     .eq('tenant_id', userData?.tenant_id || '')
-    .order('name')
+
+  if (userData?.role === 'manager') {
+    const { data: assignments } = await supabase
+      .from('admin_worksites')
+      .select('worksite_id')
+      .eq('user_id', user?.id || '')
+    const worksiteIds = assignments?.map(a => a.worksite_id) || []
+    query = query.in('id', worksiteIds)
+  }
+
+  const { data: worksites } = await query.order('name')
 
   return (
     <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
@@ -30,9 +42,17 @@ export default async function SedesPage() {
       </div>
 
       <div className="grid gap-10 lg:grid-cols-3">
-        {/* Formulario */}
+        {/* Formulario (Solo Dueños) */}
         <div className="lg:col-span-1">
-          <WorksiteForm />
+          {isOwner ? (
+            <WorksiteForm />
+          ) : (
+            <div className="locksys-card p-8 border-dashed border-white/10 text-center">
+              <Shield className="h-10 w-10 text-slate-700 mx-auto mb-4" />
+              <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Acceso Restringido</p>
+              <p className="text-[10px] text-slate-600 mt-2">Solo el administrador general puede crear nuevas sedes.</p>
+            </div>
+          )}
         </div>
 
         {/* Listado */}
@@ -69,14 +89,16 @@ export default async function SedesPage() {
                   <div className="flex items-center gap-3">
                     <QRModal worksiteId={ws.id} worksiteName={ws.name} />
                     
-                    <form action={async () => {
-                      'use server'
-                      await deleteWorksite(ws.id)
-                    }}>
-                      <button className="rounded-xl p-3 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all">
-                        <Trash2 className="h-6 w-6" />
-                      </button>
-                    </form>
+                    {isOwner && (
+                      <form action={async () => {
+                        'use server'
+                        await deleteWorksite(ws.id)
+                      }}>
+                        <button className="rounded-xl p-3 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all">
+                          <Trash2 className="h-6 w-6" />
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </div>
               ))}
