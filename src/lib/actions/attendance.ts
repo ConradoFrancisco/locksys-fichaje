@@ -26,7 +26,10 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export async function submitAttendance(formData: FormData) {
   const supabase = await createClient()
 
-  const employeeId = formData.get('employeeId') as string
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sesión no válida o expirada. Iniciá sesión nuevamente.' }
+  const employeeId = user.id
+
   const worksiteId = formData.get('worksiteId') as string
   const userLat = parseFloat(formData.get('lat') as string)
   const userLong = parseFloat(formData.get('long') as string)

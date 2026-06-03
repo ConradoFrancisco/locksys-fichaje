@@ -8,6 +8,7 @@ import {
   Settings, 
   LogOut,
   Calendar,
+  Clock,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -27,32 +28,73 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  const isOwner = userData?.role === 'admin'
+  const role = userData?.role || 'employee'
+  const isEmployee = role === 'employee'
 
-  const navItems = [
-    { label: 'Inicio', href: '/admin', icon: LayoutDashboard },
-    { label: 'Sedes', href: '/admin/sedes', icon: MapPin },
-    { label: 'Empleados', href: '/admin/empleados', icon: Users },
-    { label: 'Planificación', href: '/admin/planificacion', icon: Calendar },
-    { label: 'Asistencias', href: '/admin/asistencias', icon: History },
-  ]
+  const roleLabels: Record<string, string> = {
+    admin: 'Administrador',
+    manager: 'Gestor',
+    employee: 'Empleado',
+    super_admin: 'Súper Admin',
+  }
+  const roleLabel = roleLabels[role] || 'Empleado'
 
-  if (isOwner) {
+  const homeHref = isEmployee ? '/fichar' : '/admin'
+
+  const navItems = isEmployee
+    ? [
+        { label: 'Fichar', href: '/fichar', icon: Clock },
+      ]
+    : [
+        { label: 'Inicio', href: '/admin', icon: LayoutDashboard },
+        { label: 'Sedes', href: '/admin/sedes', icon: MapPin },
+        { label: 'Empleados', href: '/admin/empleados', icon: Users },
+        { label: 'Planificación', href: '/admin/planificacion', icon: Calendar },
+        { label: 'Asistencias', href: '/admin/asistencias', icon: History },
+      ]
+
+  if (role === 'admin') {
     navItems.push({ label: 'Administradores', href: '/admin/administradores', icon: Settings })
   }
 
   return (
     <div className="flex min-h-screen bg-[#0a0f19] text-white">
+      {/* Mobile Header */}
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/5 bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-6 z-40 lg:hidden">
+        <Link href={homeHref} className="flex items-center gap-2">
+          <div className="h-8 w-8 relative">
+            <Image
+              src="/lock-sys-logo.png"
+              alt="LockSys"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <span className="text-sm font-black tracking-tight">
+            LOCK<span className="text-[#0072ff]">SYS</span>
+          </span>
+        </Link>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-400 font-bold truncate max-w-[120px]">{user.email}</span>
+          <form action="/auth/signout" method="post">
+            <button className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Cerrar Sesión">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      </header>
+
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 hidden h-full w-64 flex-col border-r border-white/5 bg-slate-900/50 backdrop-blur-xl lg:flex z-50">
         <div className="p-6 flex items-center gap-3 border-b border-white/5">
-          <Link href="/admin" className="flex items-center gap-3 group flex-1">
+          <Link href={homeHref} className="flex items-center gap-3 group flex-1">
             <div className="h-12 w-12 flex-shrink-0 relative">
               <Image
                 src="/lock-sys-logo.png"
                 alt="LockSys Ordena"
                 fill
                 className="object-contain group-hover:scale-110 transition-transform"
+                priority
               />
             </div>
             <div>
@@ -84,7 +126,7 @@ export default async function DashboardLayout({
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-bold truncate">{user.email}</p>
-              <p className="text-[10px] text-slate-500 font-medium">Administrador</p>
+              <p className="text-[10px] text-slate-500 font-medium">{roleLabel}</p>
             </div>
           </div>
           <form action="/auth/signout" method="post">
@@ -104,7 +146,7 @@ export default async function DashboardLayout({
           <div className="absolute bottom-[10%] left-[10%] h-[500px] w-[500px] rounded-full bg-emerald-600/5 blur-[120px]" />
         </div>
         
-        <div className="relative z-10 p-4 md:p-8">
+        <div className="relative z-10 p-4 pt-20 md:p-8 lg:pt-8">
           {children}
         </div>
       </main>

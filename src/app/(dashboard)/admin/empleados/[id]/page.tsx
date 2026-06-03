@@ -6,6 +6,7 @@ import { WeekSchedulePicker } from '@/components/admin/WeekSchedulePicker'
 import { resetDevice } from '@/lib/actions/employees'
 import { WorksiteSelector } from '@/components/admin/WorksiteSelector'
 import { DepartmentSelector } from '@/components/admin/DepartmentSelector'
+import { approveDeviceChange, rejectDeviceChange } from '@/lib/actions/device-requests'
 
 export default async function EmpleadoDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params
@@ -62,6 +63,14 @@ export default async function EmpleadoDetailPage({ params }: { params: { id: str
 
   const currentWorksite = worksites?.find(w => w.id === employee.worksite_id)
 
+  // Obtener solicitud de cambio de dispositivo pendiente si existe
+  const { data: pendingDeviceRequest } = await supabase
+    .from('device_change_requests')
+    .select('*')
+    .eq('employee_id', id)
+    .eq('status', 'pending')
+    .maybeSingle()
+
   return (
     <div className="w-full animate-in fade-in duration-700">
       <Link 
@@ -71,6 +80,38 @@ export default async function EmpleadoDetailPage({ params }: { params: { id: str
         <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
         Volver a Empleados
       </Link>
+
+      {pendingDeviceRequest && (
+        <div className="mb-8 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-4 text-indigo-300">
+            <div className="p-3 bg-indigo-500/10 rounded-2xl">
+              <Smartphone className="h-6 w-6 text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="font-black text-white text-lg">Solicitud de Cambio de Dispositivo</h3>
+              <p className="text-xs text-slate-400 mt-0.5">El empleado solicita vincular un nuevo teléfono.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <form action={async () => {
+              'use server'
+              await rejectDeviceChange(pendingDeviceRequest.id)
+            }}>
+              <button className="px-5 py-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95">
+                Rechazar
+              </button>
+            </form>
+            <form action={async () => {
+              'use server'
+              await approveDeviceChange(pendingDeviceRequest.id)
+            }}>
+              <button className="px-5 py-2.5 rounded-xl border border-[#6cc04a]/20 bg-[#6cc04a]/10 hover:bg-[#6cc04a]/20 text-[#6cc04a] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95">
+                Aprobar Cambio
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="mb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div className="flex items-center gap-8">

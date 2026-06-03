@@ -12,7 +12,7 @@ export default async function EmpleadosPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userData } = await supabase
     .from('users')
-    .select('tenant_id')
+    .select('tenant_id, role')
     .eq('id', user?.id || '')
     .single()
 

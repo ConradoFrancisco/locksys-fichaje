@@ -53,3 +53,110 @@ body {
 .bg-locksys-gradient {
   background: linear-gradient(135deg, #0a0f19 0%, #111827 100%);
 }
+
+/* Custom styling for html5-qrcode container */
+#reader {
+  border: none !important;
+  background-color: rgba(30, 41, 59, 0.4) !important; /* Elegant gray background */
+  border-radius: 1.25rem !important;
+  padding: 2.25rem 1.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1.5rem !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+#reader__scan_region {
+  min-height: auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+#reader__scan_region img {
+  width: 72px !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  opacity: 0.9 !important;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) !important;
+  animation: pulse-slow 3s infinite ease-in-out;
+}
+
+#reader__dashboard {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 1rem !important;
+}
+
+#reader__dashboard_section {
+  width: 100% !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+#reader__dashboard_section_csr {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+/* Permission button style */
+#html5-qrcode-button-camera-permission {
+  background-color: #0072ff !important;
+  color: white !important;
+  font-weight: 800 !important;
+  font-size: 0.875rem !important;
+  padding: 0.875rem 1.75rem !important;
+  border-radius: 0.75rem !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease-in-out !important;
+  box-shadow: 0 4px 14px rgba(0, 114, 255, 0.3) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+#html5-qrcode-button-camera-permission:hover {
+  background-color: #0062db !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4) !important;
+}
+
+#html5-qrcode-button-camera-permission:active {
+  transform: translateY(1px) !important;
+}
+
+/* Swap scanner type anchor */
+#html5-qrcode-anchor-scan-type-change {
+  color: #94a3b8 !important; /* text-slate-400 */
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  transition: color 0.2s !important;
+}
+
+#html5-qrcode-anchor-scan-type-change:hover {
+  color: white !important;
+}
+
+/* Pulse animation for the phone icon */
+@keyframes pulse-slow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}

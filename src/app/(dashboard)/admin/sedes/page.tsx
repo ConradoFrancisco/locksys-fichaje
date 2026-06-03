@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { WorksiteForm } from '@/components/admin/WorksiteForm'
-import { MapPin, Trash2, Globe, Navigation } from 'lucide-react'
+import { MapPin, Trash2, Globe, Navigation, Shield } from 'lucide-react'
 import { deleteWorksite } from '@/lib/actions/worksites'
 import { QRModal } from '@/components/admin/QRModal'
 

@@ -4,12 +4,26 @@ import { setupPasswordAndDevice } from '@/lib/actions/auth'
 import { SubmitButton } from '@/components/shared/SubmitButton'
 import Image from 'next/image'
 import { useActionState, useEffect, useState } from 'react'
-import { Lock, AlertCircle } from 'lucide-react'
+import { Lock, AlertCircle, Phone } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+
 export default function SetupPasswordPage() {
   const [state, formAction] = useActionState(setupPasswordAndDevice, null)
   const [deviceId, setDeviceId] = useState('')
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const supabase = createClient()
 
   useEffect(() => {
+    // Obtener email del usuario en sesión
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserEmail(user.email ?? null)
+      }
+    }
+    fetchUser()
+
     // Lógica de Device Binding: Si no hay ID en este navegador, lo creamos
     let id = localStorage.getItem('locksys_device_id')
     if (!id) {
@@ -17,7 +31,21 @@ export default function SetupPasswordPage() {
       localStorage.setItem('locksys_device_id', id)
     }
     setDeviceId(id)
-  }, [])
+  }, [supabase])
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(e.currentTarget)
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    if (password !== confirmPassword) {
+      e.preventDefault()
+      setLocalError('Las contraseñas no coinciden')
+      return
+    }
+
+    setLocalError(null)
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#0a0f19] p-4 relative overflow-hidden">
@@ -51,18 +79,22 @@ export default function SetupPasswordPage() {
         </div>
 
         <div className="rounded-3xl bg-slate-900/50 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
-          <form action={formAction} className="space-y-6">
+          <form action={formAction} onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-xl bg-indigo-500/10 p-4 border border-indigo-500/20 text-xs text-indigo-300 font-medium leading-relaxed">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="h-4 w-4" />
                 <span className="font-bold uppercase tracking-widest">Seguridad LOCKSYS</span>
               </div>
-              Esta es tu primera vez. Al elegir tu contraseña, este dispositivo quedará vinculado como tu **dispositivo único de fichaje**.
+              {userEmail ? (
+                <>Configurando contraseña para el empleado: <strong className="text-white font-black">{userEmail}</strong>. Al elegir tu contraseña, este dispositivo quedará vinculado como tu <strong>dispositivo único de fichaje</strong>.</>
+              ) : (
+                <>Cargando sesión del empleado... Si esto tarda, es posible que no tengas una sesión válida.</>
+              )}
             </div>
 
-            {state?.error && (
+            {(localError || state?.error) && (
               <div className="rounded-xl bg-red-500/10 p-3 text-xs font-bold text-red-400 ring-1 ring-red-500/20 text-center">
-                {state.error}
+                {localError || state?.error}
               </div>
             )}
 
@@ -92,6 +124,19 @@ export default function SetupPasswordPage() {
                     type="password"
                     required
                     placeholder="Confirmá tu clave"
+                    className="block w-full rounded-lg border border-white/10 bg-white/5 pl-12 pr-4 py-2 text-white placeholder-slate-500 transition-all hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#0072ff] focus:bg-white/5"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-2">Teléfono Celular <span className="text-slate-600">(opcional)</span></label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-600" />
+                  <input
+                    name="phone"
+                    type="tel"
+                    placeholder="Ej: +54 11 1234-5678"
                     className="block w-full rounded-lg border border-white/10 bg-white/5 pl-12 pr-4 py-2 text-white placeholder-slate-500 transition-all hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#0072ff] focus:bg-white/5"
                   />
                 </div>

@@ -3,8 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { ActionState } from '@/types/actions'
 
-export async function signUp(prevState: any, formData: FormData) {
+export async function signUp(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient()
 
   const email = formData.get('email') as string
@@ -61,7 +62,7 @@ export async function signUp(prevState: any, formData: FormData) {
   redirect('/admin')
 }
 
-export async function signIn(prevState: any, formData: FormData) {
+export async function signIn(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient()
 
   const email = formData.get('email') as string
@@ -86,12 +87,22 @@ export async function signIn(prevState: any, formData: FormData) {
     .eq('id', user.id)
     .single()
 
+
   revalidatePath('/', 'layout')
 
+  // Si no se encuentra perfil (posible RLS o usuario nuevo via OAuth)
+  if (!userData) {
+    redirect('/onboarding')
+  }
+
   // 2. Lógica de Redirección Inteligente
-  if (userData?.role === 'employee') {
-    // @ts-ignore
-    const needsChange = userData.employees?.needs_password_change
+  if (userData.role === 'employee') {
+    // PostgREST devuelve joins como array, tomar el primer elemento
+    const employeeData = Array.isArray(userData.employees)
+      ? userData.employees[0]
+      : userData.employees
+    const needsChange = employeeData?.needs_password_change ?? true
+
     if (needsChange) {
       redirect('/setup-password')
     }
@@ -99,6 +110,64 @@ export async function signIn(prevState: any, formData: FormData) {
   }
 
   redirect('/admin')
+}
+
+/**
+ * Server Action exclusiva para el portal de empleados.
+ * Valida que el usuario tenga rol 'employee' antes de permitir el acceso.
+ */
+export async function signInEmployee(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  console.log('[signInEmployee] Intentando iniciar sesión para:', email)
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+  if (error) {
+    console.error('[signInEmployee] Error en Supabase signInWithPassword:', error.message, error.status)
+    return { error: 'Email o contraseña incorrectos.' }
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    console.error('[signInEmployee] Error: No se pudo recuperar el usuario después del login exitoso.')
+    return { error: 'Error al recuperar sesión.' }
+  }
+
+  console.log('[signInEmployee] Sesión recuperada para:', user.email, 'ID:', user.id)
+
+  // Verificar que sea empleado
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role, employees(needs_password_change)')
+    .eq('id', user.id)
+    .single()
+
+  console.log('[signInEmployee] Datos de usuario en DB:', userData)
+
+  if (!userData || userData.role !== 'employee') {
+    // No es un empleado: cerrar sesión y rechazar
+    console.warn('[signInEmployee] Rechazado: El usuario no es empleado. Rol actual:', userData?.role)
+    await supabase.auth.signOut()
+    return { error: 'Esta cuenta no es de empleado. Accedé desde el portal de empresa.' }
+  }
+
+  // Determinar si necesita configurar contraseña/dispositivo
+  const employeeData = Array.isArray(userData.employees)
+    ? userData.employees[0]
+    : userData.employees
+  const needsSetup = employeeData?.needs_password_change ?? true
+
+  console.log('[signInEmployee] Redirigiendo. Necesita setup:', needsSetup)
+
+  revalidatePath('/', 'layout')
+
+  if (needsSetup) {
+    redirect('/setup-password')
+  }
+  redirect('/fichar')
 }
 
 export async function signOut() {
@@ -168,33 +237,54 @@ export async function signInWithGoogle() {
   }
 }
 
-export async function setupPasswordAndDevice(prevState: any, formData: FormData) {
+export async function setupPasswordAndDevice(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient()
 
   const password = formData.get('password') as string
   const deviceId = formData.get('deviceId') as string
+  const phone = formData.get('phone') as string || null
 
   // 1. Obtener usuario actual
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Sesión no válida' }
+  if (!user) {
+    console.error('[setupPasswordAndDevice] Error: No hay sesión válida para actualizar contraseña.')
+    return { error: 'Sesión no válida' }
+  }
+
+  console.log('[setupPasswordAndDevice] Iniciando actualización de clave para:', user.email, 'ID:', user.id)
 
   // 2. Actualizar contraseña en Auth
   const { error: authError } = await supabase.auth.updateUser({
     password: password
   })
 
-  if (authError) return { error: `Error al actualizar clave: ${authError.message}` }
+  if (authError) {
+    console.error('[setupPasswordAndDevice] Error al actualizar clave en Supabase Auth:', authError.message)
+    return { error: `Error al actualizar clave: ${authError.message}` }
+  }
 
-  // 3. Vincular dispositivo y marcar como configurado
+  console.log('[setupPasswordAndDevice] Clave actualizada con éxito en Supabase Auth.')
+
+  // 3. Vincular dispositivo, guardar teléfono y marcar como configurado
+  const updateData: any = {
+    device_id: deviceId,
+    needs_password_change: false
+  }
+  if (phone) updateData.phone = phone
+
+  console.log('[setupPasswordAndDevice] Actualizando datos de empleado en DB. Datos:', updateData)
+
   const { error: dbError } = await supabase
     .from('employees')
-    .update({
-      device_id: deviceId,
-      needs_password_change: false
-    })
+    .update(updateData)
     .eq('id', user.id)
 
-  if (dbError) return { error: `Error al vincular dispositivo: ${dbError.message}` }
+  if (dbError) {
+    console.error('[setupPasswordAndDevice] Error al actualizar la tabla employees:', dbError.message)
+    return { error: `Error al vincular dispositivo: ${dbError.message}` }
+  }
+
+  console.log('[setupPasswordAndDevice] Registro en public.employees actualizado con éxito.')
 
   revalidatePath('/', 'layout')
   redirect('/fichar')

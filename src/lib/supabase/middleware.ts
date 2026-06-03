@@ -27,24 +27,16 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // 1. Refrescar sesión y obtener usuario
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user
+  // 1. Refrescar sesión y obtener usuario de forma segura
+  const { data: { user } } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/empleado/login')
   const isAuthCallback = pathname.startsWith('/auth/callback')
   const isOnboardingPage = pathname.startsWith('/onboarding')
   const isSetupPasswordPage = pathname.startsWith('/setup-password')
   const isDashboardPage = pathname.startsWith('/admin')
   const isAttendancePage = pathname.startsWith('/fichar')
-
-  // LOG PARA DEBUG EXTREMO
-  if (user) {
-    console.log(`[Middleware DEBUG] User: ${user.email} | Path: ${pathname}`)
-  } else {
-    console.log(`[Middleware DEBUG] No User Session | Path: ${pathname}`)
-  }
 
   // IMPORTANTE: Dejar pasar el callback sin interferir
   if (isAuthCallback) {
@@ -59,9 +51,6 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     const role = userData?.role
-    const tenantId = userData?.tenant_id
-
-    console.log(`[Middleware DEBUG] Role: ${role} | Tenant: ${tenantId}`)
 
     // 3. LÓGICA PARA USUARIOS NUEVOS (Sin registro en public.users)
     if (!role) {
@@ -78,7 +67,7 @@ export async function updateSession(request: NextRequest) {
       const { data: employeeData } = await supabase
         .from('employees')
         .select('needs_password_change')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single()
       
       needsSetup = employeeData?.needs_password_change ?? false
@@ -106,9 +95,9 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
 
-    // D. Si ya está logueado y va a login/register
+    // D. Si ya está logueado y va a login/register/empleado-login
     if (isAuthPage) {
-      const dest = isAnyAdmin ? '/admin' : '/fichar'
+      const dest = role === 'employee' ? '/fichar' : '/admin'
       return NextResponse.redirect(new URL(dest, request.url))
     }
 
@@ -127,7 +116,10 @@ export async function updateSession(request: NextRequest) {
     }
   } else {
     // Si NO está logueado y trata de entrar a zonas protegidas
-    if (isDashboardPage || isAttendancePage || isOnboardingPage || isSetupPasswordPage) {
+    if (isAttendancePage || isSetupPasswordPage) {
+      return NextResponse.redirect(new URL('/empleado/login', request.url))
+    }
+    if (isDashboardPage || isOnboardingPage) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }

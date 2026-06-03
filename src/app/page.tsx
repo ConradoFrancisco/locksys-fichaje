@@ -73,7 +73,7 @@ export default function LandingPage() {
           </Link>
           
           <Link 
-            href="/fichar"
+            href="/empleado/login"
             className="w-full md:w-auto bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-5 rounded-2xl font-black text-lg backdrop-blur-xl transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <Smartphone className="h-6 w-6" />

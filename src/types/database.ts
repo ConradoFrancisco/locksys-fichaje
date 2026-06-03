@@ -61,6 +61,7 @@ export interface Database {
           dni: string | null
           is_active: boolean
           email: string | null
+          phone: string | null
           device_id: string | null
           department_id: string | null
           needs_password_change: boolean
@@ -73,6 +74,7 @@ export interface Database {
           dni?: string | null
           is_active?: boolean
           email?: string | null
+          phone?: string | null
           device_id?: string | null
           department_id?: string | null
           needs_password_change?: boolean
@@ -85,6 +87,7 @@ export interface Database {
           dni?: string | null
           is_active?: boolean
           email?: string | null
+          phone?: string | null
           device_id?: string | null
           department_id?: string | null
           needs_password_change?: boolean
@@ -215,6 +218,35 @@ export interface Database {
           id?: string
           tenant_id?: string
           name?: string
+          created_at?: string
+        }
+      }
+      device_change_requests: {
+        Row: {
+          id: string
+          tenant_id: string
+          employee_id: string
+          old_device_id: string | null
+          new_device_id: string
+          status: 'pending' | 'approved' | 'rejected'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          employee_id: string
+          old_device_id?: string | null
+          new_device_id: string
+          status?: 'pending' | 'approved' | 'rejected'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          employee_id?: string
+          old_device_id?: string | null
+          new_device_id?: string
+          status?: 'pending' | 'approved' | 'rejected'
           created_at?: string
         }
       }

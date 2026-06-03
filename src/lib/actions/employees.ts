@@ -3,8 +3,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { ActionState } from '@/types/actions'
+import { sendInvitationEmail } from '@/lib/email/send'
 
-export async function createEmployee(prevState: any, formData: FormData) {
+export async function createEmployee(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient()
   const adminClient = createAdminClient()
 
@@ -32,17 +34,23 @@ export async function createEmployee(prevState: any, formData: FormData) {
   const dni = formData.get('internalId') as string || null 
   const departmentId = formData.get('department_id') as string || null
   const worksiteId = formData.get('worksite_id') as string || null
+  const companyName = tenantData?.name || 'nuestra plataforma'
 
-  // 2. Enviar Invitación con Metadata (incluyendo empresa)
-  const { data: authUser, error: authError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    data: { 
+  // Generar contraseña temporal (mínimo 6 caracteres para cumplir políticas de Supabase)
+  const tempPassword = dni && dni.trim().length >= 6 ? dni.trim() : Math.random().toString(36).substring(2, 10)
+
+  // 2. Crear el usuario en Auth (Confirmado inmediatamente para que no envíe el correo por defecto de Supabase)
+  const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
+    email,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: {
       full_name: fullName,
-      company_name: tenantData?.name || 'nuestra plataforma' 
-    },
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/setup-password`
+      company_name: companyName
+    }
   })
 
-  if (authError) return { error: `Error enviando invitación: ${authError.message}` }
+  if (authError) return { error: `Error al crear usuario de autenticación: ${authError.message}` }
 
   const userId = authUser.user.id
 
@@ -80,6 +88,40 @@ export async function createEmployee(prevState: any, formData: FormData) {
     await adminClient.auth.admin.deleteUser(userId)
     await supabase.from('users').delete().eq('id', userId)
     return { error: `Error creando empleado: ${empError.message}` }
+  }
+
+  // 5. Generar link de recuperación/setup de contraseña
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/setup-password`
+    }
+  })
+
+  if (linkError) {
+    // Rollback completo
+    await adminClient.auth.admin.deleteUser(userId)
+    await supabase.from('employees').delete().eq('id', userId)
+    await supabase.from('users').delete().eq('id', userId)
+    return { error: `Error al generar link de acceso: ${linkError.message}` }
+  }
+
+  // 6. Enviar invitación por email a través de Resend
+  const emailRes = await sendInvitationEmail(
+    email,
+    fullName,
+    companyName,
+    linkData.properties.action_link,
+    tempPassword
+  )
+
+  if (!emailRes.success) {
+    // Rollback completo
+    await adminClient.auth.admin.deleteUser(userId)
+    await supabase.from('employees').delete().eq('id', userId)
+    await supabase.from('users').delete().eq('id', userId)
+    return { error: `Error al enviar email de invitación: ${emailRes.error}` }
   }
 
   revalidatePath('/admin/empleados')

@@ -15,21 +15,31 @@ function AuthListener() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // Consultamos el rol para saber a dónde mandarlo
+        // Consultamos el rol Y el estado del empleado
         const { data: userData } = await supabase
           .from('users')
-          .select('role')
+          .select('role, employees(needs_password_change)')
           .eq('id', session.user.id)
           .single()
 
-        // Solo el empleado va a setup-password. El admin deja que el middleware decida.
         if (userData?.role === 'employee') {
-          router.push('/setup-password')
+          // Verificar si necesita configurar contraseña/dispositivo
+          const employeeData = Array.isArray(userData.employees)
+            ? userData.employees[0]
+            : userData.employees
+          const needsSetup = employeeData?.needs_password_change ?? true
+
+          if (needsSetup) {
+            router.push('/setup-password')
+          } else {
+            router.push('/fichar')
+          }
           router.refresh()
         } else if (!userData) {
           // Si es nuevo (Google), el middleware lo mandará a /onboarding
           router.refresh()
         }
+        // Si es admin/manager, el server action 'signIn' ya hizo redirect a /admin
       }
     })
 
