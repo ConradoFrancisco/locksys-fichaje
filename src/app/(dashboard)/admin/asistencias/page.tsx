@@ -24,11 +24,16 @@ export default async function AsistenciasPage() {
     .single()
 
   // Obtener fecha de hoy en Argentina
-  const now = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}))
-  const todayStart = new Date(now)
+  const argentinaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}))
+  const todayStart = new Date(argentinaTime)
   todayStart.setHours(0, 0, 0, 0)
-  const todayEnd = new Date(now)
+  const todayEnd = new Date(argentinaTime)
   todayEnd.setHours(23, 59, 59, 999)
+  
+  // Convertir a UTC para comparar con la BD
+  const offset = argentinaTime.getTime() - new Date().getTime()
+  const utcTodayStart = new Date(todayStart.getTime() - offset)
+  const utcTodayEnd = new Date(todayEnd.getTime() - offset)
 
   // 2. Obtener asistencias del día (filtradas si es manager)
   let query = supabase
@@ -39,8 +44,8 @@ export default async function AsistenciasPage() {
       worksites(name)
     `)
     .eq('tenant_id', userData?.tenant_id || '')
-    .gte('check_in', todayStart.toISOString())
-    .lte('check_in', todayEnd.toISOString())
+    .gte('check_in', utcTodayStart.toISOString())
+    .lte('check_in', utcTodayEnd.toISOString())
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
   const { data: currentUserData } = await supabase
@@ -65,7 +70,7 @@ export default async function AsistenciasPage() {
     <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
       <div className="mb-10 text-left">
         <h1 className="text-4xl font-black text-white tracking-tight">Registro de Asistencia</h1>
-        <p className="text-slate-400 font-medium text-lg">Fichajes de hoy - {format(now, "dd 'de' MMMM 'de' yyyy", { locale: es })}</p>
+        <p className="text-slate-400 font-medium text-lg">Fichajes de hoy - {format(argentinaTime, "dd 'de' MMMM 'de' yyyy", { locale: es })}</p>
       </div>
 
       <div className="locksys-card overflow-hidden">

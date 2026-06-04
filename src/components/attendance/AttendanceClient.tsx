@@ -298,7 +298,7 @@ export function AttendanceClient({
   const punctuality = getPunctualityDetails()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full overflow-x-hidden px-0">
       {/* Progress step indicators */}
       {!deviceMismatch && (
         <div className="flex items-center justify-between px-2 py-1">
@@ -353,7 +353,7 @@ export function AttendanceClient({
             <h2 className="text-xl font-black text-white">Escaneá el código QR</h2>
             <p className="text-xs text-slate-400">Escaneá el código ubicado en la entrada de la sede.</p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-800/40 p-4">
+          <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-800/40 p-4 w-full max-w-full">
             <style dangerouslySetInnerHTML={{__html: `
               #reader {
                 border: none !important;
@@ -363,6 +363,9 @@ export function AttendanceClient({
                 align-items: center !important;
                 justify-content: center !important;
                 gap: 1.5rem !important;
+                width: 100% !important;
+                overflow: hidden !important;
+                max-width: 100% !important;
               }
               #reader__scan_region {
                 min-height: auto !important;
@@ -370,6 +373,8 @@ export function AttendanceClient({
                 justify-content: center !important;
                 align-items: center !important;
                 width: 100% !important;
+                max-width: 100% !important;
+                overflow: hidden !important;
               }
               #reader__scan_region img {
                 width: 72px !important;
@@ -381,31 +386,64 @@ export function AttendanceClient({
               }
               #reader__dashboard {
                 width: 100% !important;
+                max-width: 100% !important;
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: center !important;
                 gap: 1rem !important;
+                overflow: hidden !important;
               }
               #reader__dashboard_section {
                 width: 100% !important;
+                max-width: 100% !important;
                 padding: 0 !important;
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: center !important;
                 gap: 0.75rem !important;
+                overflow: hidden !important;
               }
               #reader__dashboard_section_csr {
                 width: 100% !important;
+                max-width: 100% !important;
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: center !important;
+                gap: 0.75rem !important;
+                overflow: hidden !important;
+              }
+              #reader__dashboard_section_csr select {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0.875rem 1rem !important;
+                font-size: 1rem !important;
+                font-weight: 700 !important;
+                background-color: #0072ff !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 0.75rem !important;
+                cursor: pointer !important;
+                appearance: none !important;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+                background-repeat: no-repeat !important;
+                background-position: right 0.75rem center !important;
+                padding-right: 2.5rem !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+              }
+              #reader__dashboard_section_csr select:hover {
+                background-color: #0062db !important;
+              }
+              #reader__dashboard_section_csr select:focus {
+                outline: none !important;
+                box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.2) !important;
               }
               #html5-qrcode-button-camera-permission {
                 background-color: #0072ff !important;
                 color: white !important;
                 font-weight: 800 !important;
-                font-size: 0.875rem !important;
-                padding: 0.875rem 1.75rem !important;
+                font-size: 1rem !important;
+                padding: 1rem 2rem !important;
                 border-radius: 0.75rem !important;
                 border: none !important;
                 cursor: pointer !important;
@@ -413,6 +451,8 @@ export function AttendanceClient({
                 box-shadow: 0 4px 14px rgba(0, 114, 255, 0.3) !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.05em !important;
+                width: 100% !important;
+                max-width: 100% !important;
               }
               #html5-qrcode-button-camera-permission:hover {
                 background-color: #0062db !important;
@@ -433,6 +473,13 @@ export function AttendanceClient({
               #html5-qrcode-anchor-scan-type-change:hover {
                 color: white !important;
               }
+              @media (max-width: 640px) {
+                #reader__dashboard_section_csr select {
+                  font-size: 1.125rem !important;
+                  padding: 1rem !important;
+                  padding-right: 2.75rem !important;
+                }
+              }
               @keyframes pulse-slow {
                 0%, 100% {
                   transform: scale(1);
@@ -444,7 +491,7 @@ export function AttendanceClient({
                 }
               }
             `}} />
-            <div id="reader" className="w-full overflow-hidden rounded-xl" />
+            <div id="reader" className="w-full max-w-full overflow-hidden rounded-xl" />
           </div>
         </div>
       )}

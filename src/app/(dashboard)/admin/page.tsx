@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { ShieldCheck, Building2, UserCircle, Fingerprint, ArrowRight } from 'lucide-react'
+import { ShieldCheck, Building2, UserCircle, Fingerprint, ArrowRight, History, MapPin, User, CheckCircle2, AlertCircle, Camera } from 'lucide-react'
 import Link from 'next/link'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -20,6 +22,48 @@ export default async function AdminDashboard() {
     .select('*, tenants(*)')
     .eq('id', user.id)
     .single()
+
+  // Obtener fecha de hoy en Argentina
+  const argentinaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}))
+  const todayStart = new Date(argentinaTime)
+  todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date(argentinaTime)
+  todayEnd.setHours(23, 59, 59, 999)
+  
+  // Convertir a UTC para comparar con la BD
+  const offset = argentinaTime.getTime() - new Date().getTime()
+  const utcTodayStart = new Date(todayStart.getTime() - offset)
+  const utcTodayEnd = new Date(todayEnd.getTime() - offset)
+
+  // Obtener asistencias de hoy
+  let attendanceQuery = supabase
+    .from('attendance')
+    .select(`
+      *,
+      employees(full_name, dni),
+      worksites(name)
+    `)
+    .eq('tenant_id', userData?.tenant_id || '')
+    .gte('check_in', utcTodayStart.toISOString())
+    .lte('check_in', utcTodayEnd.toISOString())
+
+  // Si es manager, filtrar por sus sedes
+  const { data: currentUserData } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (currentUserData?.role === 'manager') {
+    const { data: assignments } = await supabase
+      .from('admin_worksites')
+      .select('worksite_id')
+      .eq('user_id', user.id)
+    const worksiteIds = assignments?.map(a => a.worksite_id) || []
+    attendanceQuery = attendanceQuery.in('worksite_id', worksiteIds)
+  }
+
+  const { data: todayAttendance } = await attendanceQuery.order('check_in', { ascending: false }).limit(5)
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
@@ -74,13 +118,63 @@ export default async function AdminDashboard() {
 
       {/* Stats / Accesos Rápidos */}
       <div className="grid md:grid-cols-2 gap-8">
-        <div className="locksys-card p-1">
+        <div className="locksys-card p-1 overflow-hidden">
           <div className="p-8">
-             <h3 className="text-xl font-black text-white mb-2">Actividad de Hoy</h3>
-             <p className="text-sm text-slate-500 mb-6">Resumen rápido de las asistencias registradas hoy.</p>
-             <div className="h-40 flex items-center justify-center border-2 border-dashed border-white/5 rounded-2xl">
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-widest italic">No hay fichajes registrados hoy</p>
-             </div>
+             <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
+               <History className="h-5 w-5 text-[#0072ff]" />
+               Actividad de Hoy
+             </h3>
+             <p className="text-sm text-slate-500 mb-6">Últimos fichajes registrados hoy.</p>
+             
+             {todayAttendance && todayAttendance.length > 0 ? (
+               <div className="space-y-3">
+                 {todayAttendance.map((item) => (
+                   <div key={item.id} className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 hover:border-white/10">
+                     <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-3 flex-1">
+                         <div className="h-8 w-8 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center text-slate-400 flex-shrink-0">
+                           <User className="h-4 w-4" />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <p className="font-bold text-white text-sm truncate">{item.employees?.full_name}</p>
+                           <p className="text-xs text-slate-400 flex items-center gap-2">
+                             <MapPin className="h-3 w-3" />
+                             {item.worksites?.name}
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <div className="text-right">
+                           <p className="text-sm font-black text-white">
+                             {format(new Date(item.check_in), "hh:mm a", { locale: es })}
+                           </p>
+                           {item.is_late ? (
+                             <span className="text-xs font-bold text-orange-400 flex items-center gap-1">
+                               <AlertCircle className="h-3 w-3" /> Tarde
+                             </span>
+                           ) : (
+                             <span className="text-xs font-bold text-[#6cc04a] flex items-center gap-1">
+                               <CheckCircle2 className="h-3 w-3" /> Puntual
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-2xl">
+                 <History className="h-8 w-8 text-slate-700 mb-2" />
+                 <p className="text-xs font-bold text-slate-600 uppercase tracking-widest italic">No hay fichajes hoy</p>
+               </div>
+             )}
+             
+             {todayAttendance && todayAttendance.length > 0 && (
+               <Link href="/admin/asistencias" className="mt-4 flex items-center justify-center p-3 rounded-xl bg-[#0072ff]/10 hover:bg-[#0072ff]/20 transition-all text-[#0072ff] text-xs font-bold">
+                 Ver todos los fichajes <ArrowRight className="h-3 w-3 ml-2" />
+               </Link>
+             )}
           </div>
         </div>
 

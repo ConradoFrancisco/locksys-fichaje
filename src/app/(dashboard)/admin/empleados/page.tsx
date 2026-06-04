@@ -90,7 +90,7 @@ export default async function EmpleadosPage() {
                            {emp.email}
                         </span>
                         <span className="text-xs font-bold text-[#6cc04a]">
-                           {emp.internal_id ? `DNI: ${emp.internal_id}` : 'Sin DNI'}
+                           {emp.dni ? `DNI: ${emp.dni}` : 'Sin DNI'}
                         </span>
                       </div>
                     </div>

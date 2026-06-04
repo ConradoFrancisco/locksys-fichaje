@@ -98,7 +98,7 @@ export default async function FicharPage() {
     .single()
 
   return (
-    <div className="min-h-screen bg-[#0a0f19] px-4 py-12 relative overflow-hidden flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-[#0a0f19] px-4 py-12 relative overflow-x-hidden overflow-y-auto flex flex-col items-center justify-center">
       <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[40%] rounded-full bg-[#0072ff]/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-[#6cc04a]/10 blur-[120px] pointer-events-none" />
       
