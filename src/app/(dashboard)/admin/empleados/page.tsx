@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { EmployeeForm } from '@/components/admin/EmployeeForm'
-import { Users, Trash2, User, Clock, ChevronRight } from 'lucide-react'
+import { Users, Trash2, User, Clock, ChevronRight, BarChart3 } from 'lucide-react'
 import { deleteEmployee } from '@/lib/actions/employees'
 import { DepartmentManager } from '@/components/admin/DepartmentManager'
+import { AttendanceAnalysisButton } from '@/components/admin/AttendanceAnalysisButton'
 import Link from 'next/link'
 
 export default async function EmpleadosPage() {
@@ -51,9 +52,12 @@ export default async function EmpleadosPage() {
 
   return (
     <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
-      <div className="mb-10 text-left">
-        <h1 className="text-4xl font-black text-white tracking-tight">Gestión de Personal</h1>
-        <p className="text-slate-400 font-medium text-lg">Administrá la nómina y los permisos de fichaje de tu equipo.</p>
+      <div className="mb-10 text-left flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-black text-white tracking-tight">Gestión de Personal</h1>
+          <p className="text-slate-400 font-medium text-lg">Administrá la nómina y los permisos de fichaje de tu equipo.</p>
+        </div>
+        <AttendanceAnalysisButton />
       </div>
 
       <div className="grid gap-10 lg:grid-cols-3">

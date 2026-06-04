@@ -23,7 +23,14 @@ export default async function AsistenciasPage() {
     .eq('id', user?.id || '')
     .single()
 
-  // 2. Obtener asistencias (filtradas si es manager)
+  // Obtener fecha de hoy en Argentina
+  const now = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}))
+  const todayStart = new Date(now)
+  todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date(now)
+  todayEnd.setHours(23, 59, 59, 999)
+
+  // 2. Obtener asistencias del día (filtradas si es manager)
   let query = supabase
     .from('attendance')
     .select(`
@@ -32,6 +39,8 @@ export default async function AsistenciasPage() {
       worksites(name)
     `)
     .eq('tenant_id', userData?.tenant_id || '')
+    .gte('check_in', todayStart.toISOString())
+    .lte('check_in', todayEnd.toISOString())
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
   const { data: currentUserData } = await supabase
@@ -51,20 +60,19 @@ export default async function AsistenciasPage() {
 
   const { data: attendance } = await query
     .order('check_in', { ascending: false })
-    .limit(50)
 
   return (
     <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
       <div className="mb-10 text-left">
         <h1 className="text-4xl font-black text-white tracking-tight">Registro de Asistencia</h1>
-        <p className="text-slate-400 font-medium text-lg">Monitoreo en tiempo real de ingresos, egresos y puntualidad.</p>
+        <p className="text-slate-400 font-medium text-lg">Fichajes de hoy - {format(now, "dd 'de' MMMM 'de' yyyy", { locale: es })}</p>
       </div>
 
       <div className="locksys-card overflow-hidden">
         <div className="border-b border-white/5 p-8 flex items-center justify-between bg-white/5">
           <h2 className="text-2xl font-black text-white flex items-center gap-3">
             <History className="h-6 w-6 text-[#0072ff]" />
-            Últimos Movimientos
+            Fichajes de Hoy
           </h2>
           <div className="flex gap-4">
              <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
