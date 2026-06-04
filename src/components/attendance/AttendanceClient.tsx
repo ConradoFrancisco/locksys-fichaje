@@ -99,6 +99,13 @@ export function AttendanceClient({
 
             scanner.render((decodedText) => {
               const found = worksites.find(w => w.id === decodedText)
+              
+              // Validar que sea la sede asignada del empleado
+              if (employee.worksite_id && decodedText !== employee.worksite_id) {
+                toast.error(`No podés fichar en otra sede. Tu sede asignada es: ${worksites.find(w => w.id === employee.worksite_id)?.name}`)
+                return
+              }
+              
               if (found) {
                 setSelectedWorksite(found.id)
                 setStep(3)
