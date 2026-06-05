@@ -72,8 +72,6 @@ export async function getAttendanceAnalysisByMonth(month: number, year: number) 
     .from('schedules')
     .select('employee_id, day_of_week, start_time')
     .in('employee_id', employeeIds)
-    .eq('month', month)
-    .eq('year', year)
 
   const { data: schedules, error: schedError } = await schedulesQuery
 

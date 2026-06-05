@@ -30,6 +30,32 @@ export async function submitAttendance(formData: FormData) {
   if (!user) return { error: 'Sesión no válida o expirada. Iniciá sesión nuevamente.' }
   const employeeId = user.id
 
+  // 0. VALIDAR SUSCRIPCIÓN DE LA EMPRESA
+  const { data: employee: empData } = await supabase
+    .from('employees')
+    .select('tenant_id')
+    .eq('id', employeeId)
+    .single()
+
+  if (!empData?.tenant_id) return { error: 'Datos de empresa no encontrados.' }
+
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('status, current_period_end')
+    .eq('tenant_id', empData.tenant_id)
+    .single()
+
+  if (!subscription || subscription.status !== 'active') {
+    return { error: 'La suscripción de tu empresa no está activa. Contactá al administrador.' }
+  }
+
+  if (subscription.current_period_end) {
+    const endDate = new Date(subscription.current_period_end)
+    if (endDate < new Date()) {
+      return { error: 'La suscripción de tu empresa ha vencido. Contactá al administrador.' }
+    }
+  }
+
   const worksiteId = formData.get('worksiteId') as string
   const userLat = parseFloat(formData.get('lat') as string)
   const userLong = parseFloat(formData.get('long') as string)
