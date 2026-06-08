@@ -7,7 +7,10 @@ import {
   endOfMonth, 
   eachWeekOfInterval, 
   endOfWeek, 
-  isWithinInterval 
+  isWithinInterval,
+  eachDayOfInterval,
+  format,
+  parseISO
 } from 'date-fns'
 
 // Fórmula de Haversine para calcular distancia entre dos puntos (lat/long) en metros
@@ -31,7 +34,7 @@ export async function submitAttendance(formData: FormData) {
   const employeeId = user.id
 
   // 0. VALIDAR SUSCRIPCIÓN DE LA EMPRESA
-  const { data: employee: empData } = await supabase
+  const { data: empData } = await supabase
     .from('employees')
     .select('tenant_id')
     .eq('id', employeeId)
@@ -238,4 +241,113 @@ export async function submitAttendance(formData: FormData) {
       message: isLate ? `Entrada exitosa (Llegada tarde: ${lateMinutes} min)` : 'Entrada exitosa. ¡Puntual!' 
     }
   }
+}
+
+export async function getEmployeesAttendanceSummary(tenantId: string, month: number, year: number) {
+  const supabase = await createClient()
+
+  // Rango del mes
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = endOfMonth(startDate)
+
+  // Días hábiles del mes (lunes a viernes)
+  const allDays = eachDayOfInterval({ start: startDate, end: endDate })
+  const workDays = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6)
+
+  // Traer empleados del tenant
+  const { data: employees, error: empError } = await supabase
+    .from('employees')
+    .select('id, full_name, email')
+    .eq('tenant_id', tenantId)
+
+  if (empError || !employees) {
+    return { success: false, error: 'No se pudieron obtener los empleados.' }
+  }
+
+  // Traer todos los registros de asistencia del mes para el tenant
+  const { data: attendanceRecords, error: attError } = await supabase
+    .from('attendance')
+    .select('employee_id, check_in, is_late, late_minutes')
+    .eq('tenant_id', tenantId)
+    .gte('check_in', startDate.toISOString())
+    .lte('check_in', endDate.toISOString())
+
+  if (attError) {
+    return { success: false, error: 'No se pudieron obtener los registros de asistencia.' }
+  }
+
+  // Traer horarios para detectar entradas tempranas
+  const { data: schedules } = await supabase
+    .from('schedules')
+    .select('employee_id, start_time, day_of_week')
+    .eq('tenant_id', tenantId)
+
+  const summary = employees.map(emp => {
+    const empRecords = (attendanceRecords || []).filter(r => r.employee_id === emp.id)
+    const empSchedules = (schedules || []).filter(s => s.employee_id === emp.id)
+
+    let onTime = 0
+    let late = 0
+    let early = 0
+    let absent = 0
+    let totalLateMinutes = 0
+    let totalEarlyMinutes = 0
+
+    const records = workDays.map(day => {
+      const dayStr = format(day, 'yyyy-MM-dd')
+      const dayOfWeek = day.getDay()
+
+      const record = empRecords.find(r => r.check_in.startsWith(dayStr))
+      const schedule = empSchedules.find(s => s.day_of_week === dayOfWeek)
+
+      if (!record) {
+        absent++
+        return { date: dayStr, status: 'absent' as const, minutesDifference: 0 }
+      }
+
+      if (record.is_late) {
+        late++
+        totalLateMinutes += record.late_minutes || 0
+        return { date: dayStr, status: 'late' as const, minutesDifference: record.late_minutes || 0 }
+      }
+
+      // Detectar si llegó temprano
+      if (schedule) {
+        const checkInTime = parseISO(record.check_in)
+        const [schedHours, schedMins] = schedule.start_time.split(':').map(Number)
+        const scheduledTotalMins = schedHours * 60 + schedMins
+        const checkInTotalMins = checkInTime.getHours() * 60 + checkInTime.getMinutes()
+        const diff = scheduledTotalMins - checkInTotalMins
+        if (diff > 5) {
+          early++
+          totalEarlyMinutes += diff
+          return { date: dayStr, status: 'early' as const, minutesDifference: diff }
+        }
+      }
+
+      onTime++
+      return { date: dayStr, status: 'ontime' as const, minutesDifference: 0 }
+    })
+
+    const totalDays = workDays.length
+    const presentDays = onTime + late + early
+    const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0
+
+    return {
+      id: emp.id,
+      name: emp.full_name,
+      email: emp.email,
+      onTime,
+      late,
+      early,
+      absent,
+      avgLateMinutes: late > 0 ? Math.round(totalLateMinutes / late) : 0,
+      avgEarlyMinutes: early > 0 ? Math.round(totalEarlyMinutes / early) : 0,
+      totalDays,
+      attendancePercentage,
+      records,
+    }
+  })
+
+  return { success: true, data: summary }
 }
